@@ -1,6 +1,8 @@
 package org.govardhan.userregistrationservice.controller;
 
 import jakarta.validation.Valid;
+import org.govardhan.userregistrationservice.DTO.LoginRequest;
+import org.govardhan.userregistrationservice.DTO.LoginResponse;
 import org.govardhan.userregistrationservice.DTO.UserRequest;
 import org.govardhan.userregistrationservice.DTO.UserResponse;
 import org.govardhan.userregistrationservice.model.User;
@@ -25,10 +27,9 @@ public class UserController {
     }
 
     @GetMapping("login")
-    public ResponseEntity<?> loginUser(@Valid @RequestBody UserRequest loginRequest) {
+    public ResponseEntity<LoginResponse> loginUser(@Valid @RequestBody LoginRequest loginRequest) {
         System.out.printf("Login attempt for email: %s%n", loginRequest.getEmail());
-        String token = userService.loginUser(loginRequest);
-        return ResponseEntity.ok(Map.of("token", token));
+        return ResponseEntity.ok(userService.loginUser(loginRequest));
     }
 
     @GetMapping("profile")

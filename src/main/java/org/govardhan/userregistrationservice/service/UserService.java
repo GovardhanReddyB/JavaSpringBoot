@@ -1,19 +1,29 @@
 package org.govardhan.userregistrationservice.service;
 
+import org.govardhan.userregistrationservice.DTO.LoginRequest;
+import org.govardhan.userregistrationservice.DTO.LoginResponse;
 import org.govardhan.userregistrationservice.DTO.UserRequest;
 import org.govardhan.userregistrationservice.DTO.UserResponse;
+import org.govardhan.userregistrationservice.exception.InvalidCredentialsException;
 import org.govardhan.userregistrationservice.exception.UserAlreadyExistException;
 import org.govardhan.userregistrationservice.exception.UserNotFoundException;
 import org.govardhan.userregistrationservice.model.User;
 import org.govardhan.userregistrationservice.repository.UserRepository;
 import org.govardhan.userregistrationservice.security.JwtService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
 public class UserService  {
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private JwtService jwtService;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     public UserResponse registerUSer(UserRequest userRequest) {
         if (userRepository.existsByEmail(userRequest.getEmail())) {
@@ -23,20 +33,23 @@ public class UserService  {
         User user = new User();
         user.setUsername(userRequest.getName());
         user.setEmail(userRequest.getEmail());
-        user.setPassword(userRequest.getPassword());
+        user.setPassword(passwordEncoder.encode(userRequest.getPassword()));
 
         userRepository.save(user);
         return new UserResponse(user.getId(), user.getUsername(), user.getEmail(), "User registered successfully");
     }
 
-    public String loginUser(UserRequest userRequest) {
-        User user = userRepository.findByEmail(userRequest.getEmail());
+    public LoginResponse loginUser(LoginRequest loginRequest) {
+        User user = userRepository.findByEmail(loginRequest.getEmail());
         if (user == null) {
-            throw new UserNotFoundException("User with email " + userRequest.getEmail() + " not found.");
+            throw new InvalidCredentialsException("User with email " + loginRequest.getEmail() + " not found.");
         }
-        // TODO: Add password verification logic here
-
-        return new JwtService().generateToken(userRequest.getEmail());
+        // Todo: Add password verification logic here
+        if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
+            throw new InvalidCredentialsException("Invalid password for email " + loginRequest.getEmail() + ".");
+        }
+        String token = new JwtService().generateToken(loginRequest.getEmail());
+        return new LoginResponse(token, "Login successful");
     }
 
     public UserResponse getUserProfile(String email) {
